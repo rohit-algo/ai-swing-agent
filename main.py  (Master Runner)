@@ -1,10 +1,10 @@
 import pandas as pd
+from datetime import datetime
 
-from data_engine.price_data import fetch_price
+from data_engine.price_data import get_price_data
 from feature_engine.technical_features import add_technical_features
 from scoring_engine.scoring_model import calculate_score
-from delivery_engine.telegram_alert import send_alert, send_start_message
-
+from delivery_engine.telegram_alert import send_alert
 
 # ==============================
 # 📊 STOCK LIST
@@ -23,14 +23,16 @@ STOCKS = [
     "ITC.NS"
 ]
 
-
 # ==============================
-# 📩 TELEGRAM FORMATTER
+# 📩 PROFESSIONAL TELEGRAM FORMATTER
 # ==============================
 
 def format_telegram_output(top_df):
 
-    message = "📊 *NSE Swing Scanner – Top Ranked Stocks*\n"
+    now_time = datetime.now().strftime("%d-%m-%Y %H:%M")
+
+    message = f"📊 *NSE Swing Scanner Report*\n"
+    message += f"⏰ {now_time}\n"
     message += "━━━━━━━━━━━━━━━━━━━━\n"
 
     rank = 1
@@ -41,7 +43,7 @@ def format_telegram_output(top_df):
 
         message += f"""
 {rank}. {emoji} *{row['Stock']}*
-   📈 Score : {row['Score']}/100
+   📈 Score : *{row['Score']}/100*
    📊 Trend : {row['Trend']}
    ⚡ RSI   : {row['RSI']}
    🔥 ATR   : {row['ATR']}
@@ -49,10 +51,10 @@ def format_telegram_output(top_df):
 """
         rank += 1
 
+    message += "\n🔎 Filter: Technical Ranking Engine"
     message += "\n#AI_Swing_System 🚀"
 
     return message
-
 
 # ==============================
 # 🚀 MAIN EXECUTION
@@ -68,9 +70,10 @@ def main():
 
         print(f"Scanning {stock}...")
 
-        df = fetch_price(stock)
+        df = get_price_data(stock)
 
         if df is None or df.empty:
+            print(f"❌ No data for {stock}, skipping.")
             continue
 
         df = add_technical_features(df)
@@ -96,8 +99,6 @@ def main():
     # ==============================
     # 📩 TELEGRAM SEND
     # ==============================
-
-    send_start_message()
 
     telegram_message = format_telegram_output(top5)
 
