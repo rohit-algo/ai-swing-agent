@@ -1,29 +1,110 @@
 import pandas as pd
-from data_engine.price_data import get_price_data
-from feature_engine.technical_features import add_technical_indicators
+
+from data_engine.price_data import fetch_price
+from feature_engine.technical_features import add_technical_features
 from scoring_engine.scoring_model import calculate_score
+from delivery_engine.telegram_alert import send_alert, send_start_message
 
-stocks = ["RELIANCE.NS","TCS.NS","INFY.NS","HDFCBANK.NS"]
 
-results = []
+# ==============================
+# 📊 STOCK LIST
+# ==============================
 
-for stock in stocks:
-    df = get_price_data(stock)
+STOCKS = [
+    "RELIANCE.NS",
+    "TCS.NS",
+    "INFY.NS",
+    "HDFCBANK.NS",
+    "ICICIBANK.NS",
+    "LT.NS",
+    "SBIN.NS",
+    "AXISBANK.NS",
+    "KOTAKBANK.NS",
+    "ITC.NS"
+]
 
-    if df is None:
-        continue
 
-    df = add_technical_indicators(df)
+# ==============================
+# 📩 TELEGRAM FORMATTER
+# ==============================
 
-    score_data = calculate_score(df)
+def format_telegram_output(top_df):
 
-    results.append({
-        "Stock": stock,
-        **score_data
-    })
+    message = "📊 *NSE Swing Scanner – Top Ranked Stocks*\n"
+    message += "━━━━━━━━━━━━━━━━━━━━\n"
 
-results_df = pd.DataFrame(results)
-results_df = results_df.sort_values(by="Score", ascending=False)
+    rank = 1
 
-print("\n🚀 WEEK 1 – TECHNICAL SCANNER OUTPUT\n")
-print(results_df)
+    for _, row in top_df.iterrows():
+
+        emoji = "🟢" if row["Trend"] == "Bullish" else "🔴"
+
+        message += f"""
+{rank}. {emoji} *{row['Stock']}*
+   📈 Score : {row['Score']}/100
+   📊 Trend : {row['Trend']}
+   ⚡ RSI   : {row['RSI']}
+   🔥 ATR   : {row['ATR']}
+━━━━━━━━━━━━━━━━━━━━
+"""
+        rank += 1
+
+    message += "\n#AI_Swing_System 🚀"
+
+    return message
+
+
+# ==============================
+# 🚀 MAIN EXECUTION
+# ==============================
+
+def main():
+
+    results = []
+
+    print("🔄 Scanner Started...")
+
+    for stock in STOCKS:
+
+        print(f"Scanning {stock}...")
+
+        df = fetch_price(stock)
+
+        if df is None or df.empty:
+            continue
+
+        df = add_technical_features(df)
+
+        result = calculate_score(stock, df)
+
+        if result:
+            results.append(result)
+
+    if not results:
+        print("❌ No valid stocks found.")
+        return
+
+    df_results = pd.DataFrame(results)
+
+    df_results = df_results.sort_values(by="Score", ascending=False)
+
+    top5 = df_results.head(5)
+
+    print("\n🔥 TOP 5 STOCKS 🔥")
+    print(top5)
+
+    # ==============================
+    # 📩 TELEGRAM SEND
+    # ==============================
+
+    send_start_message()
+
+    telegram_message = format_telegram_output(top5)
+
+    send_alert(telegram_message)
+
+    print("✅ Telegram Alerts Sent Successfully!")
+
+
+if __name__ == "__main__":
+    main()
