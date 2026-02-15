@@ -1,29 +1,73 @@
-def calculate_score(df):
+import numpy as np
+
+
+def calculate_score(symbol, df):
+
+    if df is None or df.empty or len(df) < 50:
+        return None
 
     latest = df.iloc[-1]
-    atr_mean = df["ATR"].mean()
+
+    # ==============================
+    # 🔍 SAFETY CHECK
+    # ==============================
+
+    required_cols = ["SMA20", "SMA50", "RSI", "ATR", "Close"]
+
+    for col in required_cols:
+        if col not in df.columns:
+            print(f"Missing column: {col} in {symbol}")
+            return None
 
     score = 0
     trend = "Neutral"
 
-    if latest["EMA20"] > latest["EMA50"]:
+    # ==============================
+    # 📈 TREND SCORE (30)
+    # ==============================
+
+    if latest["SMA20"] > latest["SMA50"]:
         score += 30
         trend = "Bullish"
+    else:
+        score += 10
+        trend = "Bearish"
 
-    if latest["RSI"] > 55:
+    # ==============================
+    # ⚡ RSI MOMENTUM SCORE (30)
+    # ==============================
+
+    rsi = latest["RSI"]
+
+    if 50 < rsi < 70:
+        score += 30
+    elif 40 <= rsi <= 50:
+        score += 20
+    elif rsi < 40:
+        score += 10
+
+    # ==============================
+    # 💰 PRICE ABOVE SMA20 (20)
+    # ==============================
+
+    if latest["Close"] > latest["SMA20"]:
         score += 20
 
-    if latest["ATR"] > atr_mean:
+    # ==============================
+    # 🔥 VOLATILITY CONFIRMATION (20)
+    # ==============================
+
+    if latest["ATR"] > df["ATR"].mean():
         score += 20
 
-    atr_percent = (latest["ATR"] / latest["Close"]) * 100
-    stop_loss = round(atr_percent * 1.5, 2)
-    target = round(stop_loss * 2, 2)
+    # ==============================
+    # 🧠 FINAL RETURN STRUCTURE
+    # ==============================
 
     return {
-        "Score": score,
+        "Stock": symbol,
+        "Score": int(score),
         "Trend": trend,
-        "ATR%": round(atr_percent,2),
-        "SL%": stop_loss,
-        "Target%": target
+        "RSI": round(float(latest["RSI"]), 2),
+        "ATR": round(float(latest["ATR"]), 2)
     }
