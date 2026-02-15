@@ -1,0 +1,29 @@
+import pandas as pd
+from data_engine.price_data import get_price_data
+from feature_engine.technical_features import add_technical_indicators
+from scoring_engine.scoring_model import calculate_score
+
+stocks = ["RELIANCE.NS","TCS.NS","INFY.NS","HDFCBANK.NS"]
+
+results = []
+
+for stock in stocks:
+    df = get_price_data(stock)
+
+    if df is None:
+        continue
+
+    df = add_technical_indicators(df)
+
+    score_data = calculate_score(df)
+
+    results.append({
+        "Stock": stock,
+        **score_data
+    })
+
+results_df = pd.DataFrame(results)
+results_df = results_df.sort_values(by="Score", ascending=False)
+
+print("\n🚀 WEEK 1 – TECHNICAL SCANNER OUTPUT\n")
+print(results_df)
