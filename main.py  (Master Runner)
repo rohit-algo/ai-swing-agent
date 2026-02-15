@@ -1,7 +1,8 @@
 import pandas as pd
 from datetime import datetime
 
-from data_engine.price_data import get_price_data
+# 🔹 Correct import with alias
+from data_engine.price_data import get_price_data as fetch_price
 from feature_engine.technical_features import add_technical_features
 from scoring_engine.scoring_model import calculate_score
 from delivery_engine.telegram_alert import send_alert
@@ -9,7 +10,6 @@ from delivery_engine.telegram_alert import send_alert
 # ==============================
 # 📊 STOCK LIST
 # ==============================
-
 STOCKS = [
     "RELIANCE.NS",
     "TCS.NS",
@@ -26,9 +26,7 @@ STOCKS = [
 # ==============================
 # 📩 PROFESSIONAL TELEGRAM FORMATTER
 # ==============================
-
 def format_telegram_output(top_df):
-
     now_time = datetime.now().strftime("%d-%m-%Y %H:%M")
 
     message = f"📊 *NSE Swing Scanner Report*\n"
@@ -38,7 +36,6 @@ def format_telegram_output(top_df):
     rank = 1
 
     for _, row in top_df.iterrows():
-
         emoji = "🟢" if row["Trend"] == "Bullish" else "🔴"
 
         message += f"""
@@ -53,24 +50,20 @@ def format_telegram_output(top_df):
 
     message += "\n🔎 Filter: Technical Ranking Engine"
     message += "\n#AI_Swing_System 🚀"
-
     return message
 
 # ==============================
 # 🚀 MAIN EXECUTION
 # ==============================
-
 def main():
-
     results = []
 
     print("🔄 Scanner Started...")
 
     for stock in STOCKS:
-
         print(f"Scanning {stock}...")
 
-        df = get_price_data(stock)
+        df = fetch_price(stock)  # Using the alias
 
         if df is None or df.empty:
             print(f"❌ No data for {stock}, skipping.")
@@ -88,7 +81,6 @@ def main():
         return
 
     df_results = pd.DataFrame(results)
-
     df_results = df_results.sort_values(by="Score", ascending=False)
 
     top5 = df_results.head(5)
@@ -99,13 +91,11 @@ def main():
     # ==============================
     # 📩 TELEGRAM SEND
     # ==============================
-
     telegram_message = format_telegram_output(top5)
-
     send_alert(telegram_message)
 
     print("✅ Telegram Alerts Sent Successfully!")
 
-
+# ==============================
 if __name__ == "__main__":
     main()
